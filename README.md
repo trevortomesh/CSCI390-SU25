@@ -1,43 +1,46 @@
-# CSCI390-SU25
+1. # 📘 Operating Systems: A Living Textbook
 
-# 📘 Operating Systems & Blockchains – A Living Textbook
+   Welcome to **Operating Systems: A Living Textbook**—a continuously evolving, lecture-driven companion to your course. Every chapter is based on actual classroom instruction, cleaned up and clarified for clarity, accuracy, and real-world relevance.
 
-This evolving textbook is constructed from live lectures and exercises in Dr. Trevor Tomesh’s CSCI 390 course at Ave Maria University. Chapters will be added throughout the semester.
+   This resource is designed to help you:
+   - Review lecture content in a structured way
+   - See the connections between theory and practice
+   - Understand core OS concepts through examples and diagrams
+   - Catch up if you miss class or need reinforcement
 
-# 📘 Operating Systems: A Living Textbook
+   Each section mirrors lecture flow, from the basics of system architecture and C programming to memory management, processes, and system calls. Code examples and diagrams are integrated where helpful.
 
-Welcome to **Operating Systems: A Living Textbook**—a student-friendly, transcript-inspired, ever-evolving digital companion to your operating systems course.
+   Let’s dive in.
 
-This book is not meant to replace your lectures or textbook readings—but to *augment* them. Every chapter is derived from real lecture transcripts, cleaned up and annotated to enhance clarity while preserving the energy, rhythm, and practical focus of live instruction. It’s designed to evolve with each semester, each insight, and each interaction.
+   
+   This page is more-or-less transcribed from the lecture notes + ChatGPT.
+   <u>If you spot an error (and there are many) please send a pull request!</u>
 
-You’ll find clear explanations, illustrative code examples, diagrams, and step-by-step walkthroughs. Topics range from low-level memory operations and process control to higher-level abstractions like system calls and user-kernel mode transitions.
+   
 
-Let this be your go-to guide when reviewing lectures, catching up on what you missed, or exploring topics in more depth.
+   ---
 
----
+   ## 📑 Table of Contents
 
-## 📑 Table of Contents
-
-1. [Welcome to Operating Systems & Blockchains](#chapter-1-welcome-to-operating-systems--blockchains)
-2. [What *Is* an Operating System?](#chapter-2-what-is-an-operating-system)
-3. [Getting Started with Docker and Ubuntu](#chapter-3-getting-started-with-docker-and-ubuntu)
-4. [The Linux Shell and the Art of Parsing](#chapter-4-the-linux-shell-and-the-art-of-parsing)
-5. [A Crash Course in C](#chapter-5-a-crash-course-in-c)
-6. [An Introduction to Pointers](#chapter-6-an-introduction-to-pointers)
-7. [Dynamic Memory with `malloc` and `free`](#chapter-7-dynamic-memory-with-malloc-and-free)
-8. [Stack vs. Heap, Part I](#chapter-8-stack-vs-heap-part-i)
-9. [Stack vs. Heap, Part II](#chapter-9-stack-vs-heap-part-ii)
-10. [Function Pointers and Memory Layout in C](#chapter-10-function-pointers-and-memory-layout-in-c)
-11. [From Code to Binary — The Compile/Link Cycle](#chapter-11-from-code-to-binary--the-compilelink-cycle)
-12. [Introduction to x86 Assembly](#chapter-12-introduction-to-x86-assembly)
-13. [Introduction to ARM64 Assembly](#chapter-13-introduction-to-arm64-assembly)
-14. [Stack Frames and Calling Conventions](#chapter-14-stack-frames-and-calling-conventions)
-15. [Instruction Flow and Control Logic](#chapter-15-instruction-flow-and-control-logic)
-16. [Introduction to Processes](#chapter-16-introduction-to-processes)
-17. [Context Switching, System Calls, and the User–Kernel Divide](#chapter-17-context-switching-system-calls-and-the-userkernel-divide)
-18. [Hardware, the Kernel, and User Processes](#chapter-18-hardware-the-kernel-and-user-processes)
-19. [`fork()` – Creating New Processes in Unix-like Systems](#chapter-19-fork--creating-new-processes-in-unix-like-systems)
-
+   1. [Welcome to Operating Systems & Blockchains](#chapter-1-welcome-to-operating-systems--blockchains)
+   2. [What Is an Operating System](#chapter-2-what-is-an-operating-system)
+   3. [Getting Started with Docker and Ubuntu](#chapter-3-getting-started-with-docker-and-ubuntu)
+   4. [The Linux Shell and the Art of Parsing](#chapter-4-the-linux-shell-and-the-art-of-parsing)
+   5. [A Crash Course in C](#chapter-5-a-crash-course-in-c)
+   6. [An Introduction to Pointers](#chapter-6-an-introduction-to-pointers)
+   7. [Dynamic Memory with malloc and free](#chapter-7-dynamic-memory-with-malloc-and-free)
+   8. [Stack vs Heap, Part II](#chapter-8-stack-vs-heap-part-ii)
+   9. [Stack vs Heap, Part III](#chapter-9-stack-vs-heap-part-iii)
+   10. [Function Pointers and Memory Layout in C](#chapter-10-function-pointers-and-memory-layout-in-c)
+   11. [From Code to Binary — The Compile/Link Cycle](#chapter-11-from-code-to-binary--the-compilelink-cycle)
+   12. [Introduction to x86 Assembly](#chapter-12-introduction-to-x86-assembly)
+   13. [Intro to ARM64 Assembly](#chapter-13-intro-to-arm64-assembly)
+   14. [Stack Frames and Calling Conventions](#chapter-14-stack-frames-and-calling-conventions)
+   15. [Instruction Flow and Control Logic](#chapter-15-instruction-flow-and-control-logic)
+   16. [Introduction to Processes](#chapter-16-introduction-to-processes)
+   17. [Context Switching, System Calls, and the User–Kernel Divide](#chapter-17-context-switching-system-calls-and-the-userkernel-divide)
+   18. [Hardware, the Kernel, and User Processes](#chapter-18-hardware-the-kernel-and-user-processes)
+   19. [fork() – Creating New Processes in Unix-like Systems](#chapter-19-fork--creating-new-processes-in-unix-like-systems)
 ---
 
 More chapters will be added over time, reflecting new material, refinements, and your feedback.
@@ -302,11 +305,11 @@ Follow the [Docker install tutorial on Canvas](#) for your platform (Windows, Ma
 
 ```bash
 docker --version
-
+````
 You should see the installed Docker version. Next:
-
+```bash
 docker run hello-world
-
+```
 If it prints a success message, Docker is working!
 
 ⸻
@@ -314,9 +317,9 @@ If it prints a success message, Docker is working!
 🧪 Running Ubuntu in Docker
 
 To launch an interactive Ubuntu container:
-
+```bash
 docker run -it ubuntu
-
+```
 	•	-i means interactive
 	•	-t allocates a terminal
 	•	ubuntu is the name of the base image
@@ -344,10 +347,11 @@ apt install micro	Install the Micro text editor
 📝 Text Editors in Ubuntu
 
 This course uses the Micro text editor for simplicity:
-
+```bash
 apt-get update
 apt install micro
 micro test.txt
+````
 
 Use:
 	•	Ctrl + S to save
@@ -749,13 +753,13 @@ int main() {
     printf("Address of x: %p\n", (void*)&x);
     printf("Address stored in p: %p\n", (void*)p);
     printf("Value at address p: %d\n", *p);
-
+    
     int y = 10;
     int *ptr = &y;
     *ptr = *ptr + 5;
-
+    
     printf("y = %d\n", y);
-
+    
     return 0;
 }
 
@@ -943,7 +947,7 @@ int* return_array() {
     for (int i = 0; i < 5; i++) {
         r[i] = i;  // Fill with values 0 to 4
     }
-
+    
     return r;
 }
 
@@ -966,7 +970,7 @@ int* return_array() {
     for (int i = 0; i < 5; i++) {
         r[i] = i + 1;
     }
-
+    
     return r;
 }
 
@@ -978,7 +982,7 @@ int main() {
     for (int i = 0; i < 5; i++) {
         printf("my_array[%d] = %d\n", i, my_array[i]);
     }
-
+    
     free(my_array);
     return 0;
 }
