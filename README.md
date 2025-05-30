@@ -41,6 +41,8 @@
    17. [Context Switching, System Calls, and the User–Kernel Divide](#chapter-17-context-switching-system-calls-and-the-userkernel-divide)
    18. [Hardware, the Kernel, and User Processes](#chapter-18-hardware-the-kernel-and-user-processes)
    19. [fork() – Creating New Processes in Unix-like Systems](#chapter-19-fork--creating-new-processes-in-unix-like-systems)
+   
+   20. [Corruption Risks During Context Switches](#Chapter 21: Corruption Risks During Context Switches)
 ---
 
 More chapters will be added over time, reflecting new material, refinements, and your feedback.
@@ -2472,3 +2474,105 @@ int main() {
 - Always `wait()` for child processes to prevent zombies.
 - The behavior of `fork()` is foundational for multiprocessing, shells, and more.
 
+
+
+---
+
+
+
+## Chapter 21: Corruption Risks During Context Switches
+
+In this chapter, we examine a subtle but serious challenge in operating system design: **data corruption during context switches**. You’ll learn how process memory and register states can be compromised if not properly isolated, how corruption manifests, and how operating systems mitigate this risk.
+
+---
+
+### 🔄 Recap: What Is a Context Switch?
+
+A **context switch** occurs when the CPU saves the state of the currently running process and loads the state of another.
+
+Each process has its own:
+- Register values (e.g., `r0`, `r1`, etc.)
+- Stack
+- Program Counter (PC)
+- Memory mappings
+
+These are saved and restored by the kernel to give the illusion of concurrent execution.
+
+---
+
+### 💥 The Risk of Memory and Register Corruption
+
+If context switches are handled improperly, two processes can **interfere with each other**—especially if memory or registers are not safely isolated.
+
+#### Consider this output:
+
+```
+-- Before context switch --
+[Process A] r0 = 1, stack = ""
+[Process B] r0 = 100, stack = ""
+
+-- Context switch to process A --
+
+-- Context switch to process B --
+
+-- After context switches --
+[Process A] r0 = 2, stack = "Process r0 was 1"
+[Process B] r0 = 101, stack = "Process r0 was 100"
+```
+
+This is **correct behavior**: each process maintains its own values independently.
+
+#### But what if we saw this?
+
+```
+-- After context switches --
+[Process A] r0 = 2, stack = "Temporary process data."
+[Process B] r0 = 101, stack = "Temporary process data."
+```
+
+⚠️ That’s a problem. Both processes have the **same stack contents**, which means they’ve either:
+- Written to the same memory location
+- Used shared or improperly isolated memory
+- Experienced register leakage between switches
+
+---
+
+### 🧠 Why Does This Happen?
+
+Improper context isolation can result from:
+- **Buggy kernel code**
+- **Stack pointer errors** (e.g., reusing the same region)
+- **Shared global variables** without proper locking or separation
+- **Manual context switching logic** in educational OSes or microkernels
+
+---
+
+### 🛡️ How Real OSes Prevent This
+
+Modern operating systems mitigate corruption risks through:
+- Strict **virtual memory mapping** (each process gets its own address space)
+- Saving and restoring **registers** during switches
+- Kernel-managed **Process Control Blocks (PCBs)** storing:
+  - Register states
+  - Stack pointers
+  - Instruction pointers
+- Protected **user–kernel mode separation**
+- **Hardware support** for process isolation (e.g., memory management units)
+
+---
+
+### 🔍 Debugging Corruption
+
+When debugging:
+- Check for variables leaking between processes
+- Verify `r0`, `sp`, or `pc` are saved/restored correctly
+- Use tools like `gdb` to inspect memory and stack
+
+---
+
+### 🧠 Summary
+
+- Context switches can introduce memory/register corruption if done incorrectly.
+- Each process must maintain **strict isolation** of its execution context.
+- Real OSes rely on **virtual memory, PCBs, and hardware isolation** to prevent this.
+- You can visualize corruption by observing duplicated stack contents or improper register values.
