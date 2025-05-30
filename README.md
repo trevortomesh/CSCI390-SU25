@@ -43,6 +43,8 @@
    19. [fork() – Creating New Processes in Unix-like Systems](#chapter-19-fork--creating-new-processes-in-unix-like-systems)
    
    20. [Corruption Risks During Context Switches](#Chapter 21: Corruption Risks During Context Switches)
+   
+   21. [Chapter 22: Threads vs Processes](#chapter-22-threads-vs-processes)
 ---
 
 More chapters will be added over time, reflecting new material, refinements, and your feedback.
@@ -2576,3 +2578,134 @@ When debugging:
 - Each process must maintain **strict isolation** of its execution context.
 - Real OSes rely on **virtual memory, PCBs, and hardware isolation** to prevent this.
 - You can visualize corruption by observing duplicated stack contents or improper register values.
+
+---
+
+
+
+## Chapter 22: Threads vs Processes
+
+In this chapter, we explore one of the most fundamental distinctions in operating system design: **threads** vs **processes**. While they may seem similar at first glance—after all, both represent execution contexts—they behave very differently when it comes to memory, scheduling, and isolation.
+
+---
+
+### 🧠 What Is a Process?
+
+A **process** is an instance of a program in execution. It contains:
+- A complete memory space (code, data, heap, stack)
+- File descriptors
+- Register states
+- A Process Control Block (PCB) maintained by the OS
+
+Each process is **isolated** from others—one process can't (normally) access another’s memory directly.
+
+---
+
+### 🧵 What Is a Thread?
+
+A **thread** is a lightweight unit of execution **within a process**. Multiple threads can:
+- Share the same memory space (heap, globals)
+- Have their own stack and registers
+- Communicate more efficiently than processes (no need for IPC)
+
+Threads within the same process are often called **user-level threads** or **POSIX threads (pthreads)**.
+
+---
+
+### 🔄 Comparison Table
+
+| Feature       | Process                            | Thread                                         |
+| ------------- | ---------------------------------- | ---------------------------------------------- |
+| Memory        | Isolated                           | Shared within process                          |
+| Scheduling    | Independently scheduled            | May be scheduled cooperatively or preemptively |
+| Crash Scope   | One crash affects only one process | One thread crash may affect whole process      |
+| Communication | Uses IPC (slow)                    | Simple shared memory                           |
+| Overhead      | High (OS-managed)                  | Lower (can be user-managed)                    |
+
+---
+
+### 🧪 Analogy: Apartments vs. Rooms
+
+- **Processes** are like apartments in a building—each one is separate, has its own key, and doesn't share walls.
+- **Threads** are like roommates in the same apartment—separate beds, but shared kitchen and living room. If one starts a fire in the kitchen, everyone’s affected.
+
+---
+
+### 💥 Dangers of Threads
+
+The shared nature of memory in threads makes them **faster** but also more **dangerous**:
+- Race conditions can occur when two threads try to update shared data simultaneously
+- Synchronization tools like **mutexes**, **semaphores**, and **condition variables** are required
+- Bugs are hard to reproduce and debug (heisenbugs)
+
+---
+
+### 🛠️ Practical Use Cases
+
+| Use Case                       | Threads or Processes?         |
+| ------------------------------ | ----------------------------- |
+| Multi-user web server          | Threads (handle each request) |
+| Data-parallel computation      | Threads (shared data)         |
+| Isolation between applications | Processes                     |
+| Crash resilience               | Processes                     |
+
+---
+
+### ⚙️ C Thread Lifecycle (POSIX Model)
+
+```c
+#include <pthread.h>
+#include <stdio.h>
+
+void* say_hello(void* arg) {
+    printf("Hello from thread!\\n");
+    return NULL;
+}
+
+int main() {
+    pthread_t tid;
+    pthread_create(&tid, NULL, say_hello, NULL);
+    pthread_join(tid, NULL);
+    return 0;
+}
+```
+
+This code creates a new thread that prints a message, then waits for it to finish.
+
+---
+
+### 🐍 Python Threading Example
+
+Python also supports multithreading using the `threading` module:
+
+```python
+import threading
+
+def worker():
+    print("Hello from Python thread!")
+
+# Create a thread
+t = threading.Thread(target=worker)
+
+# Start and wait for it to finish
+t.start()
+t.join()
+```
+
+This behaves similarly to the C example using `pthread_create`, though it's subject to the **Global Interpreter Lock (GIL)**, which can affect performance in CPU-bound tasks.
+
+---
+
+### 🔍 Python vs C Threads
+
+- **Python threads** are useful for I/O-bound tasks (networking, file I/O)
+- **C threads** are better for CPU-bound parallelism (since they’re not limited by the GIL)
+- In Python, consider using `multiprocessing` instead of threads for CPU-heavy workloads
+
+---
+
+### ✅ Summary
+
+- **Processes** offer safety and isolation but have higher overhead.
+- **Threads** are lightweight and efficient but require careful synchronization.
+- Choose the right tool for your task—favor processes for isolation and threads for performance within shared data contexts.
