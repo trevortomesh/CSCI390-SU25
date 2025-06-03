@@ -22,29 +22,31 @@
 
    ## 📑 Table of Contents
 
-   1. [Welcome to Operating Systems & Blockchains](#chapter-1-welcome-to-operating-systems--blockchains)
-   2. [What Is an Operating System](#chapter-2-what-is-an-operating-system)
-   3. [Getting Started with Docker and Ubuntu](#chapter-3-getting-started-with-docker-and-ubuntu)
-   4. [The Linux Shell and the Art of Parsing](#chapter-4-the-linux-shell-and-the-art-of-parsing)
-   5. [A Crash Course in C](#chapter-5-a-crash-course-in-c)
-   6. [An Introduction to Pointers](#chapter-6-an-introduction-to-pointers)
-   7. [Dynamic Memory with malloc and free](#chapter-7-dynamic-memory-with-malloc-and-free)
-   8. [Stack vs Heap, Part II](#chapter-8-stack-vs-heap-part-ii)
-   9. [Stack vs Heap, Part III](#chapter-9-stack-vs-heap-part-iii)
-   10. [Function Pointers and Memory Layout in C](#chapter-10-function-pointers-and-memory-layout-in-c)
-   11. [From Code to Binary — The Compile/Link Cycle](#chapter-11-from-code-to-binary--the-compilelink-cycle)
-   12. [Introduction to x86 Assembly](#chapter-12-introduction-to-x86-assembly)
-   13. [Intro to ARM64 Assembly](#chapter-13-intro-to-arm64-assembly)
-   14. [Stack Frames and Calling Conventions](#chapter-14-stack-frames-and-calling-conventions)
-   15. [Instruction Flow and Control Logic](#chapter-15-instruction-flow-and-control-logic)
-   16. [Introduction to Processes](#chapter-16-introduction-to-processes)
-   17. [Context Switching, System Calls, and the User–Kernel Divide](#chapter-17-context-switching-system-calls-and-the-userkernel-divide)
-   18. [Hardware, the Kernel, and User Processes](#chapter-18-hardware-the-kernel-and-user-processes)
-   19. [fork() – Creating New Processes in Unix-like Systems](#chapter-19-fork--creating-new-processes-in-unix-like-systems)
+   ## Table of Contents
    
-   20. [Corruption Risks During Context Switches](#Chapter 21: Corruption Risks During Context Switches)
-   
-   21. [Chapter 22: Threads vs Processes](#chapter-22-threads-vs-processes)
+   - [Chapter 1: Introduction and Syllabus](#chapter-1-introduction-and-syllabus)
+   - [Chapter 2: Operating Systems (Three Easy Pieces)](#chapter-2-operating-systems-three-easy-pieces)
+   - [Chapter 3: Intro to Docker and Ubuntu](#chapter-3-intro-to-docker-and-ubuntu)
+   - [Chapter 4: Intro to Linux, the Shell, and Parsers](#chapter-4-intro-to-linux-the-shell-and-parsers)
+   - [Chapter 5: A Crash Course in C](#chapter-5-a-crash-course-in-c)
+   - [Chapter 6: An Intro to Pointers](#chapter-6-an-intro-to-pointers)
+   - [Chapter 7: malloc and free](#chapter-7-malloc-and-free)
+   - [Chapter 8: Stack vs Heap (Part 2)](#chapter-8-stack-vs-heap-part-2)
+   - [Chapter 9: Heap vs Stack (Part 3)](#chapter-9-heap-vs-stack-part-3)
+   - [Chapter 10: Stack Growth and Lifetime](#chapter-10-stack-growth-and-lifetime)
+   - [Chapter 11: The Compile-Link Cycle](#chapter-11-the-compile-link-cycle)
+   - [Chapter 12: Intro to x86 Assembly](#chapter-12-intro-to-x86-assembly)
+   - [Chapter 13: Intro to ARM64 Assembly](#chapter-13-intro-to-arm64-assembly)
+   - [Chapter 14: Stack Frames](#chapter-14-stack-frames)
+   - [Chapter 15: Instruction Flow and Control Logic](#chapter-15-instruction-flow-and-control-logic)
+   - [Chapter 16: Intro to Processes](#chapter-16-intro-to-processes)
+   - [Chapter 17: Context Switching, System Calls, and the User–Kernel Divide](#chapter-17-context-switching-system-calls-and-the-userkernel-divide)
+   - [Chapter 18: Hardware, the Kernel, and User Processes](#chapter-18-hardware-the-kernel-and-user-processes)
+   - [Chapter 19: Fork()](#chapter-19-fork)
+   - [Chapter 20: Corruption Risks During Context Switches](#chapter-20-corruption-risks-during-context-switches)
+   - [Chapter 21: Threads vs Processes](#chapter-21-threads-vs-processes)
+   - [Chapter 22: Go, Goroutines, and Race Conditions](#chapter-22-go-goroutines-and-race-conditions)
+   - [Chapter 23: Visualizing Thread Execution with Python and htop](#chapter-23-visualizing-thread-execution-with-python-and-htop)
 ---
 
 More chapters will be added over time, reflecting new material, refinements, and your feedback.
@@ -2709,3 +2711,233 @@ This behaves similarly to the C example using `pthread_create`, though it's subj
 - **Processes** offer safety and isolation but have higher overhead.
 - **Threads** are lightweight and efficient but require careful synchronization.
 - Choose the right tool for your task—favor processes for isolation and threads for performance within shared data contexts.
+
+---
+
+## Chapter 23: Go, Goroutines, and Race Conditions
+
+Go (or Golang) is a modern systems-level programming language developed at Google. It emphasizes simplicity, safety, and concurrency. In this chapter, we explore Go's concurrency model, focusing on goroutines and how they compare to traditional threads and processes.
+
+------
+
+### 🧵 What Is a Goroutine?
+
+A **goroutine** is Go's lightweight unit of execution, similar to a thread but more efficient. Goroutines:
+
+- Are managed by the Go runtime rather than the OS
+- Start with very small stack sizes (e.g. 2 KB)
+- Are multiplexed onto a small number of OS threads
+- Can number in the thousands or millions
+
+You create a goroutine by using the `go` keyword before a function call:
+
+```go
+go doSomething()
+```
+
+This spawns a new concurrent execution of `doSomething()`.
+
+------
+
+### ⛓️ Threads vs Goroutines vs Processes
+
+| Feature          | Process      | Thread        | Goroutine                  |
+| ---------------- | ------------ | ------------- | -------------------------- |
+| Memory Isolation | Isolated     | Shared        | Shared (within Go process) |
+| Managed By       | OS           | OS            | Go Runtime                 |
+| Cost             | High         | Moderate      | Low                        |
+| Scheduling       | OS Scheduler | OS Scheduler  | Go Scheduler               |
+| Communication    | IPC (slow)   | Shared memory | Channels                   |
+
+------
+
+### 📦 Packages: `time` and `sync`
+
+Go's standard library provides useful packages for managing concurrency:
+
+- `time.Sleep()` can delay execution
+- `sync.WaitGroup` allows synchronization (waiting for goroutines to finish)
+
+Example:
+
+```go
+package main
+import (
+    "fmt"
+    "sync"
+    "time"
+)
+
+func sayHello(wg *sync.WaitGroup) {
+    defer wg.Done()
+    fmt.Println("Hello from goroutine")
+    time.Sleep(time.Second)
+}
+
+func main() {
+    var wg sync.WaitGroup
+    wg.Add(1)
+    go sayHello(&wg)
+    wg.Wait()
+    fmt.Println("Done")
+}
+```
+
+------
+
+### 🧠 Race Conditions
+
+A **race condition** occurs when two or more goroutines access shared memory simultaneously, and at least one is writing.
+
+Example:
+
+```go
+package main
+import (
+    "fmt"
+    "sync"
+)
+
+var x = 0
+
+func increment(wg *sync.WaitGroup) {
+    for i := 0; i < 1000; i++ {
+        x++
+    }
+    wg.Done()
+}
+
+func main() {
+    var wg sync.WaitGroup
+    wg.Add(2)
+    go increment(&wg)
+    go increment(&wg)
+    wg.Wait()
+    fmt.Println("x:", x)
+}
+```
+
+This program may print different results each time, such as `x: 1863`, `x: 2000`, or something in between. That inconsistency is due to a race condition.
+
+Use `go run -race your_program.go` to detect race conditions.
+
+------
+
+### 🛡️ Preventing Race Conditions
+
+Go provides the `sync.Mutex` type to protect critical sections:
+
+```go
+var mu sync.Mutex
+
+mu.Lock()
+x++
+mu.Unlock()
+```
+
+You can also use atomic operations or channels to coordinate safely between goroutines.
+
+------
+
+### ✅ Summary
+
+- **Goroutines** are Go's concurrency primitive: lightweight, efficient, and managed by the runtime.
+- **WaitGroups** help coordinate goroutines.
+- **Race conditions** are a common concurrency bug—detectable using `-race` and preventable using mutexes or safe design.
+
+Concurrency is a core part of Go. Understanding goroutines and synchronization is essential for writing correct and scalable Go programs.
+
+---
+
+## Chapter 24: Visualizing Thread Execution with Python and `htop`
+
+In this chapter, we explore how to observe and understand thread-level concurrency using Python and the Unix utility `htop`. This chapter connects practical programming exercises with real-time system-level monitoring.
+
+------
+
+### 🧵 Python Threads Recap
+
+Python threads are created using the `threading` module. Threads share memory and are used primarily for I/O-bound tasks due to Python's Global Interpreter Lock (GIL).
+
+```python
+import threading
+
+def cpu_task():
+    while True:
+        pass  # Busy wait to simulate CPU work
+
+for _ in range(4):
+    t = threading.Thread(target=cpu_task)
+    t.daemon = True
+    t.start()
+```
+
+This code starts four infinite threads that burn CPU.
+
+------
+
+### 🖥️ Monitoring with `htop`
+
+`htop` is a powerful system monitor for Unix systems that allows you to:
+
+- View per-thread CPU usage
+- Observe memory consumption
+- See process tree hierarchies
+
+Launch `htop` and press `H` to toggle thread view.
+
+You should see multiple entries under your Python process, each representing a thread.
+
+------
+
+### 🔍 Why Threads May Not Use All CPUs
+
+Due to Python’s **Global Interpreter Lock (GIL)**, only one thread can execute Python bytecode at a time.
+
+- Even with multiple threads, CPU-bound programs may only use a single core.
+- Use `multiprocessing` for CPU-bound tasks if true parallelism is needed.
+
+------
+
+### 🧪 Experiment: Threads in Action
+
+1. Run the thread script in a terminal.
+2. In another terminal, launch `htop`.
+3. Press `H` to enable thread view.
+4. Observe CPU usage by thread.
+
+Questions:
+
+- How many threads does Python actually start?
+- Does CPU usage increase with more threads?
+- How does `htop` visualize the load?
+
+------
+
+### 🛠️ Alternative: Multiprocessing
+
+For actual parallelism:
+
+```python
+from multiprocessing import Process
+
+def cpu_task():
+    while True:
+        pass
+
+for _ in range(4):
+    p = Process(target=cpu_task)
+    p.start()
+```
+
+Each process runs in its own memory space and bypasses the GIL.
+
+------
+
+### ✅ Summary
+
+- Python threads are great for I/O but limited by the GIL for CPU-bound tasks.
+- `htop` helps you visualize system-level activity down to individual threads.
+- Use `multiprocessing` to utilize multiple cores effectively.
+
+Understanding the real system behavior of your concurrent programs is essential. Tools like `htop` bridge the gap between code and CPU.
