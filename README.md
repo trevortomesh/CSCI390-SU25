@@ -2941,3 +2941,460 @@ Each process runs in its own memory space and bypasses the GIL.
 - Use `multiprocessing` to utilize multiple cores effectively.
 
 Understanding the real system behavior of your concurrent programs is essential. Tools like `htop` bridge the gap between code and CPU.
+
+---
+
+## **Chapter 25: Intro to Scheduling and the Round-Robin (RR) Algorithm**
+
+
+
+
+
+CPU scheduling is one of the most fundamental mechanisms in an operating system. When multiple processes are ready to run, the OS must decide which one gets to use the CPU next. This decision-making process is known as **scheduling**.
+
+
+
+In this chapter, we focus on one of the most common and intuitive scheduling algorithms: **Round-Robin (RR)**.
+
+
+
+------
+
+
+
+
+
+### **🕰️ What Is Scheduling?**
+
+
+
+
+
+Scheduling determines the order in which processes access the CPU. Key goals include:
+
+
+
+- **Fairness**: every process should get CPU time
+- **Efficiency**: keep the CPU busy
+- **Response time**: especially important in interactive systems
+
+
+
+
+
+Schedulers can be **preemptive** (a process can be interrupted) or **non-preemptive** (a process runs until it yields or finishes).
+
+
+
+------
+
+
+
+
+
+### **🔁 Round-Robin Scheduling**
+
+
+
+
+
+Round-robin is a preemptive scheduling algorithm designed for **time-sharing systems**. Each process gets a fixed time slice (called a **quantum**) and is cycled through in a queue.
+
+
+
+
+
+#### **How it works:**
+
+
+
+
+
+1. All processes are placed in a ready queue.
+2. The scheduler picks the first process in the queue.
+3. That process runs for a maximum of quantum milliseconds.
+4. If the process doesn’t finish, it’s put at the end of the queue.
+5. The next process is selected, and the cycle continues.
+
+
+
+
+
+This ensures **fair access** and **regular rotation** among all processes.
+
+
+
+------
+
+
+
+
+
+### **🧠 Example:**
+
+
+
+
+
+Suppose we have 3 processes:
+
+
+
+- P1: needs 5ms total
+- P2: needs 3ms total
+- P3: needs 8ms total
+
+
+
+
+
+With a time quantum of 2ms, the RR sequence might look like:
+
+```
+P1 (2ms) → P2 (2ms) → P3 (2ms) → P1 (2ms) → P2 (1ms) → P3 (2ms) → P1 (1ms) → P3 (2ms)
+```
+
+The processes take turns, and none hogs the CPU.
+
+
+
+------
+
+
+
+
+
+### **⏱️ Choosing the Quantum**
+
+
+
+
+
+The choice of quantum size is crucial:
+
+
+
+- Too small: too many context switches (wasteful)
+- Too large: behaves like First-Come, First-Served (loses interactivity)
+
+
+
+
+
+Typical quanta: 10ms to 100ms on modern systems.
+
+
+
+------
+
+
+
+
+
+### **🛠️ Implementing RR**
+
+
+
+
+
+In real systems, RR is often implemented with **process control blocks (PCBs)** and a **circular queue**.
+
+
+
+Each context switch involves:
+
+
+
+- Saving the current process state
+- Restoring the next process’s state
+
+
+
+
+
+A timer interrupt signals the end of a time slice.
+
+
+
+------
+
+
+
+
+
+### **🔄 RR vs Other Schedulers**
+
+
+
+| **Feature**   | **Round-Robin** | **FCFS** | **Priority Scheduling**       |
+| ------------- | --------------- | -------- | ----------------------------- |
+| Preemptive    | Yes             | No       | Yes (can be)                  |
+| Fairness      | High            | Low      | Varies                        |
+| Response Time | Good            | Poor     | Poor (for low-priority tasks) |
+| Complexity    | Low             | Very low | Moderate                      |
+
+
+
+------
+
+
+
+
+
+### **✅ Summary**
+
+
+
+
+
+- **Scheduling** determines which process runs next.
+- **Round-robin** rotates processes through fixed time slices.
+- It balances fairness and responsiveness, ideal for time-sharing.
+- Choosing the right quantum is key to performance.
+
+
+
+
+
+Understanding RR gives a foundation for exploring more advanced algorithms like Multilevel Feedback Queues and Shortest Remaining Time First.
+
+
+
+---
+
+## Chapter 26: Scheduling Algorithms
+
+In this chapter, we survey a variety of common **CPU scheduling algorithms** and how they trade off fairness, efficiency, and responsiveness. Building on Round-Robin from the previous chapter, we now explore **First-Come First-Served (FCFS)**, **Shortest Job First (SJF)**, **Shortest Remaining Time First (SRTF)**, and **Multilevel Feedback Queues (MLFQ)**.
+
+------
+
+### 🧭 The Goals of Scheduling
+
+Schedulers aim to:
+
+- Maximize CPU utilization
+- Minimize turnaround time and waiting time
+- Ensure fairness among processes
+- Maintain responsive behavior (especially for interactive tasks)
+
+Different algorithms prioritize different goals.
+
+------
+
+### 1️⃣ First-Come First-Served (FCFS)
+
+- **Non-preemptive**
+- Processes run in the order they arrive
+
+Advantages:
+
+- Simple to implement
+- Predictable
+
+Disadvantages:
+
+- **Convoy effect**: long jobs delay shorter ones
+- Poor average response time
+
+------
+
+### 2️⃣ Shortest Job First (SJF)
+
+- **Non-preemptive**
+- Chooses process with the shortest **total expected CPU burst**
+
+Advantages:
+
+- Minimizes average waiting time
+
+Disadvantages:
+
+- Requires knowledge of future job lengths
+- Can lead to starvation of long jobs
+
+------
+
+### 3️⃣ Shortest Remaining Time First (SRTF)
+
+- **Preemptive** version of SJF
+- A new process can preempt if it has a shorter remaining time
+
+Advantages:
+
+- Even better average waiting time than SJF
+
+Disadvantages:
+
+- High overhead from frequent context switches
+- Needs accurate estimates of burst time
+
+------
+
+### 4️⃣ Round-Robin (RR)
+
+- Reviewed in Chapter 25
+- Equal time slices (quanta)
+- Cycles through processes
+
+Advantages:
+
+- Fair and responsive
+- Simple implementation
+
+Disadvantages:
+
+- Too small a quantum causes overhead
+- Too large a quantum reduces responsiveness
+
+------
+
+### 5️⃣ Multilevel Feedback Queues (MLFQ)
+
+- A **dynamic and adaptive** scheduling method
+- Processes are grouped into multiple queues, each with different priority and time slice lengths
+- Jobs can **move between queues** based on behavior (e.g. CPU-bound vs I/O-bound)
+
+#### Key features:
+
+- Processes start at high-priority queues
+- If they use too much CPU, they’re demoted
+- If they wait too long, they may be promoted
+
+Advantages:
+
+- Good for interactive and batch processes
+- Very flexible
+
+Disadvantages:
+
+- Complex to implement and tune
+- Can be difficult to understand scheduling decisions
+
+------
+
+### 🧪 Simulation Activity (Optional)
+
+Try simulating each of these algorithms with a fixed set of jobs and burst times. Use a Gantt chart to visualize execution order and calculate:
+
+- Average waiting time
+- Average turnaround time
+
+Example job set:
+
+- P1: 6ms
+- P2: 8ms
+- P3: 7ms
+- P4: 3ms
+
+------
+
+### ✅ Summary
+
+| Algorithm   | Preemptive | Responsive | Starvation Risk | Notes                           |
+| ----------- | ---------- | ---------- | --------------- | ------------------------------- |
+| FCFS        | No         | Poor       | Low             | Simple but causes convoy effect |
+| SJF         | No         | Poor       | High            | Optimal but impractical         |
+| SRTF        | Yes        | Moderate   | High            | Good performance, more overhead |
+| Round-Robin | Yes        | Good       | Low             | Fair and widely used            |
+| MLFQ        | Yes        | High       | Medium          | Adaptive and powerful           |
+
+Choosing the right scheduler depends on your system’s goals and workload. In practice, modern OSes use hybrids that combine several of these techniques.
+
+---
+
+## Chapter 27: Scheduling Algorithm Evaluation
+
+After studying individual scheduling algorithms, we now turn our attention to **evaluating** them. This chapter will introduce the metrics and methods used to assess scheduling policies, including theoretical and experimental comparisons.
+
+------
+
+### 📏 Key Evaluation Metrics
+
+Schedulers are often compared based on the following criteria:
+
+- **CPU Utilization**: Percentage of time the CPU is doing useful work.
+- **Throughput**: Number of processes completed per unit time.
+- **Turnaround Time**: Time from submission to completion.
+- **Waiting Time**: Time spent in the ready queue.
+- **Response Time**: Time from submission to first response (important for interactive systems).
+
+Different workloads may prioritize different metrics.
+
+------
+
+### 🧠 Trade-Offs and Priorities
+
+Improving one metric can harm another. For example:
+
+- Maximizing throughput may reduce fairness.
+- Minimizing waiting time may increase response time variance.
+- Low turnaround time for short jobs may starve longer ones.
+
+These trade-offs are central to scheduler design.
+
+------
+
+### 🧪 Simulation-Based Evaluation
+
+You can simulate the behavior of schedulers with a fixed set of processes. For example:
+
+#### Process Set:
+
+- P1: 0ms arrival, 10ms burst
+- P2: 2ms arrival, 5ms burst
+- P3: 4ms arrival, 2ms burst
+
+Try simulating:
+
+- FCFS
+- SJF
+- SRTF
+- Round-Robin (quantum = 3ms)
+- MLFQ
+
+Use a Gantt chart and calculate:
+
+- Average turnaround time
+- Average waiting time
+- Context switches
+
+------
+
+### 📊 Visualization and Tools
+
+Tools like Excel, Google Sheets, or custom Python scripts can help plot Gantt charts or calculate averages.
+
+Example Python pseudocode:
+
+```python
+# Simple simulation loop structure
+for time in range(0, max_time):
+    select_next_process()
+    run_for_one_tick()
+    record_metrics()
+```
+
+------
+
+### 🔄 Real-World Constraints
+
+In real systems, other factors complicate evaluation:
+
+- I/O wait times
+- Interrupts
+- Priority inversion
+- Cache effects
+- Hardware support (e.g. context switch time)
+
+Thus, empirical benchmarks and profiling are often used in addition to simulations.
+
+------
+
+### ✅ Summary
+
+- **Scheduler evaluation** is about balancing multiple metrics.
+- Simulations provide controlled comparisons.
+- Real-world systems must account for additional complexity.
+- No scheduler is perfect—choose based on workload and system goals.
+
+Evaluating algorithms rigorously allows designers to understand not just what works, but **why** and **under what circumstances**.
