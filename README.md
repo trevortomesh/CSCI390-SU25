@@ -3398,3 +3398,788 @@ Thus, empirical benchmarks and profiling are often used in addition to simulatio
 - No scheduler is perfect—choose based on workload and system goals.
 
 Evaluating algorithms rigorously allows designers to understand not just what works, but **why** and **under what circumstances**.
+
+---
+
+## Chapter 28: Go Concurrency — Race Conditions and Mutexes
+
+Concurrency in Go is powerful but must be used carefully. In this chapter, we explore **race conditions**, why they are dangerous, and how to prevent them using **mutexes**.
+
+------
+
+### 🎯 Learning Objectives
+
+By the end of this chapter, you will:
+
+- Understand what a race condition is and why it’s dangerous
+- Learn what a mutex is and how it prevents race conditions
+- Write multithreaded Go code that illustrates both the problem and the solution
+
+------
+
+### 🔄 What Is a Goroutine?
+
+A **goroutine** is a lightweight, independent unit of execution in Go. Like a thread, it can run concurrently with others, but it's managed by the Go runtime instead of the operating system. Goroutines share memory, so coordination is crucial.
+
+------
+
+### ⚠️ What Is a Race Condition?
+
+A **race condition** happens when two or more goroutines access and modify shared data at the same time. The result of the computation depends on the precise timing of execution, which is unpredictable.
+
+**Example:** Two users attempt to deposit money into the same bank account concurrently. If the updates overlap, the final balance may be incorrect.
+
+------
+
+### 🔐 What Is a Mutex?
+
+A **mutex** (short for *mutual exclusion*) is a locking mechanism that ensures only one goroutine accesses a **critical section**(code that manipulates shared data) at a time. Go provides `sync.Mutex` for this purpose.
+
+------
+
+### ⚙️ Part 1: Demonstrating a Race Condition
+
+We’ll increment a shared counter from two goroutines, each doing 100,000 increments. Ideally, the final value should be 200,000. Without synchronization, this rarely happens.
+
+```go
+package main
+
+import (
+    "fmt"
+    "sync"
+)
+
+var counter int
+
+func increment(wg *sync.WaitGroup) {
+    for i := 0; i < 100000; i++ {
+        counter++
+    }
+    wg.Done()
+}
+
+func main() {
+    var wg sync.WaitGroup
+    wg.Add(2)
+
+    go increment(&wg)
+    go increment(&wg)
+
+    wg.Wait()
+    fmt.Println("Final counter value (without mutex):", counter)
+}
+```
+
+You’ll likely see a number **less than 200,000**, because both goroutines read and write to `counter` at overlapping times.
+
+------
+
+### 🛠️ Part 2: Fixing the Race Condition Using a Mutex
+
+Let’s protect the critical section using a `sync.Mutex`.
+
+```go
+package main
+
+import (
+    "fmt"
+    "sync"
+)
+
+var counter int
+var mu sync.Mutex
+
+func increment(wg *sync.WaitGroup) {
+    for i := 0; i < 100000; i++ {
+        mu.Lock()
+        counter++
+        mu.Unlock()
+    }
+    wg.Done()
+}
+
+func main() {
+    var wg sync.WaitGroup
+    wg.Add(2)
+
+    go increment(&wg)
+    go increment(&wg)
+
+    wg.Wait()
+    fmt.Println("Final counter value (with mutex):", counter)
+}
+```
+
+With the mutex in place, the output is consistently **200,000**—we’ve eliminated the race condition.
+
+------
+
+### 🧪 Optional: Increase the Chance of a Race Condition
+
+Add a small delay to exaggerate the issue in the unsynchronized version:
+
+```go
+import "time"
+
+func increment(wg *sync.WaitGroup) {
+    for i := 0; i < 100000; i++ {
+        time.Sleep(10 * time.Microsecond)
+        counter++
+    }
+    wg.Done()
+}
+```
+
+This increases the likelihood of overlap between goroutines.
+
+------
+
+### 📚 Concept Summary
+
+| Concept          | Definition                                                   |
+| ---------------- | ------------------------------------------------------------ |
+| Race Condition   | Unpredictable behavior from concurrent access to shared data |
+| Critical Section | A part of the code that accesses shared resources            |
+| Goroutine        | A lightweight thread managed by Go’s runtime                 |
+| Mutex / Lock     | A tool that ensures only one goroutine accesses a resource at a time |
+
+------
+
+This chapter was developed by Dr. Tomesh with AI assistance to adapt and extend prior versions of the material for clarity and instructional quality.
+
+---
+
+## Chapter 29: More on Goroutines, Threads, and Race Conditions
+
+This chapter continues our discussion on concurrency in Go, elaborating on the behavior of goroutines and how they relate to operating system threads, CPUs, and the underlying Go scheduler. It builds on previous lessons to clarify misconceptions and deepen understanding of how Go programs execute concurrently.
+
+------
+
+### 🧠 Goroutines and Threads: What's the Difference?
+
+- A **goroutine** is *not* a thread. It’s much lighter.
+- Goroutines are managed by the **Go runtime**, not the operating system.
+- Go uses a **work-stealing scheduler** to map many goroutines onto a small number of OS threads.
+
+This means you can create **thousands or even millions** of goroutines without exhausting system resources, unlike threads which are expensive to spawn and manage.
+
+------
+
+### 🧵 How Goroutines Use Threads
+
+Each OS thread can only run **one goroutine** at a time. However, Go’s scheduler balances and redistributes goroutines across threads efficiently.
+
+The number of threads Go uses is governed by the environment variable `GOMAXPROCS`, which sets the number of threads that can execute Go code simultaneously.
+
+```go
+import "runtime"
+
+func main() {
+    runtime.GOMAXPROCS(4)  // Use 4 threads to run Go code
+}
+```
+
+You can inspect how many threads your program is using with Go’s built-in profiling tools or observe it indirectly using system monitors like `htop`.
+
+------
+
+### 🛠️ Example: Observing Goroutines and Threads
+
+Here’s a snippet that spawns multiple goroutines:
+
+```go
+package main
+import (
+    "fmt"
+    "sync"
+    "time"
+)
+
+func spin(id int, wg *sync.WaitGroup) {
+    defer wg.Done()
+    for i := 0; i < 5; i++ {
+        fmt.Printf("Goroutine %d, step %d\n", id, i)
+        time.Sleep(100 * time.Millisecond)
+    }
+}
+
+func main() {
+    var wg sync.WaitGroup
+    for i := 0; i < 10; i++ {
+        wg.Add(1)
+        go spin(i, &wg)
+    }
+    wg.Wait()
+    fmt.Println("All goroutines complete")
+}
+```
+
+Observe the behavior in `htop` by pressing `H` to show threads. You’ll see Go’s threads, not one per goroutine, but enough to execute them concurrently.
+
+------
+
+### 🧪 Visualizing Race Conditions Again
+
+Let’s revisit race conditions with a small twist. If you’re on a multi-core system and don’t use mutexes, your race condition is more likely to manifest quickly.
+
+```go
+var count = 0
+
+func increment(wg *sync.WaitGroup) {
+    for i := 0; i < 100000; i++ {
+        count++
+    }
+    wg.Done()
+}
+```
+
+Even if this code compiles and runs, the final value of `count` is almost always wrong.
+
+------
+
+### 🧠 Summary
+
+- Goroutines are **not threads** but are executed on top of threads.
+- Go's scheduler efficiently uses OS threads with **GOMAXPROCS**.
+- Tools like `htop` can help you visualize threading behavior.
+- **Race conditions** remain a persistent risk in shared-memory concurrency.
+
+Understanding goroutines at a deeper level helps demystify how Go handles massive concurrency with minimal overhead.
+
+---
+
+## Chapter 30: Semaphores
+
+In this chapter, we explore **semaphores**—a fundamental synchronization primitive used in operating systems to coordinate concurrent processes and prevent race conditions.
+
+Semaphores are critical for managing access to shared resources, particularly when multiple threads or processes attempt to read or write simultaneously.
+
+------
+
+### 🔐 What Is a Semaphore?
+
+A **semaphore** is an abstract data type that consists of:
+
+- An integer value
+- Two atomic operations: **wait** (also called `P`) and **signal** (also called `V`)
+
+These operations control whether a process can proceed.
+
+------
+
+### 🔄 Types of Semaphores
+
+- **Binary Semaphore** (aka Mutex): Can only take values 0 or 1.
+- **Counting Semaphore**: Has a range of integer values and allows more than one process to enter a critical section.
+
+Semaphores are used to:
+
+- Protect critical sections
+- Coordinate producer-consumer problems
+- Control access to limited resources
+
+------
+
+### ⚙️ Basic Semaphore Behavior
+
+**Wait (P)**:
+
+```text
+if semaphore > 0:
+    decrement semaphore
+else:
+    block the process
+```
+
+**Signal (V)**:
+
+```text
+increment semaphore
+if any processes are blocked:
+    unblock one
+```
+
+These operations are always performed **atomically** to avoid race conditions.
+
+------
+
+### 🧵 Go Example with a Counting Semaphore
+
+Go doesn’t have built-in semaphores, but we can simulate them using buffered channels:
+
+```go
+package main
+
+import (
+    "fmt"
+    "sync"
+    "time"
+)
+
+func worker(id int, sem chan struct{}, wg *sync.WaitGroup) {
+    defer wg.Done()
+    sem <- struct{}{} // Acquire semaphore
+    fmt.Printf("Worker %d entering critical section\n", id)
+    time.Sleep(1 * time.Second)
+    fmt.Printf("Worker %d leaving critical section\n", id)
+    <-sem // Release semaphore
+}
+
+func main() {
+    var wg sync.WaitGroup
+    sem := make(chan struct{}, 3) // Semaphore with capacity 3
+
+    for i := 0; i < 10; i++ {
+        wg.Add(1)
+        go worker(i, sem, &wg)
+    }
+
+    wg.Wait()
+}
+```
+
+This example allows up to **3 workers** to enter the critical section concurrently.
+
+------
+
+### 🔍 Use Cases for Semaphores
+
+- **Resource Management**: Limit access to a pool of resources (e.g., database connections)
+- **Producer-Consumer**: Ensure producers wait if the buffer is full
+- **Reader-Writer Problems**: Balance concurrent access to data
+
+------
+
+### 🧠 Summary
+
+- Semaphores are used to synchronize access to shared resources.
+- Binary semaphores are used like locks; counting semaphores allow limited concurrency.
+- Go simulates semaphores with buffered channels.
+- Always ensure semaphore operations are atomic.
+
+Semaphores are low-level but powerful tools in concurrent systems design. Mastery of semaphores sets the foundation for building safe, correct multi-threaded programs.
+
+---
+
+## Chapter 31: Deadlock
+
+Deadlock is a critical concept in operating systems that arises when a group of processes are blocked, each waiting for a resource that another holds. In this chapter, we explain what deadlock is, how it can occur, and strategies to avoid, prevent, or recover from it.
+
+------
+
+### 🧠 What Is Deadlock?
+
+A **deadlock** occurs when processes are stuck waiting for each other in a circular chain, and none can proceed. For example:
+
+- Process A holds Resource 1 and waits for Resource 2.
+- Process B holds Resource 2 and waits for Resource 1.
+
+Both processes wait forever. This is a deadlock.
+
+------
+
+### 🔄 The Four Conditions for Deadlock
+
+Deadlock can only occur if **all four** of the following conditions hold:
+
+1. **Mutual Exclusion**: At least one resource is held in a non-shareable mode.
+2. **Hold and Wait**: A process holds at least one resource and is waiting to acquire more.
+3. **No Preemption**: A resource cannot be forcibly taken from a process.
+4. **Circular Wait**: A cycle of processes exists where each process waits for a resource held by the next.
+
+Breaking **any one** of these conditions is sufficient to prevent deadlock.
+
+------
+
+### 🔍 Example in Go (Simulating Deadlock)
+
+```go
+package main
+
+import (
+    "fmt"
+    "sync"
+)
+
+var mu1 sync.Mutex
+var mu2 sync.Mutex
+
+func main() {
+    var wg sync.WaitGroup
+    wg.Add(2)
+
+    go func() {
+        defer wg.Done()
+        mu1.Lock()
+        fmt.Println("Goroutine 1 locked mu1")
+        mu2.Lock()
+        fmt.Println("Goroutine 1 locked mu2")
+        mu2.Unlock()
+        mu1.Unlock()
+    }()
+
+    go func() {
+        defer wg.Done()
+        mu2.Lock()
+        fmt.Println("Goroutine 2 locked mu2")
+        mu1.Lock()
+        fmt.Println("Goroutine 2 locked mu1")
+        mu1.Unlock()
+        mu2.Unlock()
+    }()
+
+    wg.Wait()
+    fmt.Println("Done")
+}
+```
+
+In this example, both goroutines may deadlock: one locks `mu1` then tries `mu2`, while the other locks `mu2` then tries `mu1`.
+
+------
+
+### 🚨 Deadlock Detection and Recovery
+
+- **Detection**: Use resource allocation graphs to identify cycles.
+- **Recovery**: Kill one or more processes or forcibly preempt resources.
+
+Trade-offs include choosing which process to kill and handling rollback or restart.
+
+------
+
+### 🛡️ Deadlock Prevention Techniques
+
+- **Break Mutual Exclusion**: Allow resource sharing when possible.
+- **Avoid Hold and Wait**: Require all resources up front.
+- **Allow Preemption**: Enable OS to forcibly take resources.
+- **Prevent Circular Wait**: Impose a strict ordering on resource requests.
+
+------
+
+### ✅ Summary
+
+| Concept              | Description                                                  |
+| -------------------- | ------------------------------------------------------------ |
+| Deadlock             | Processes block each other in a resource cycle               |
+| Necessary Conditions | Mutual exclusion, hold and wait, no preemption, circular wait |
+| Detection            | Use graphs to find cycles                                    |
+| Prevention           | Break one or more necessary conditions                       |
+
+Understanding deadlock is essential for designing safe concurrent systems and is especially important in low-level OS design and multithreaded programming.
+
+---
+
+
+
+## **Chapter 32: The Producer–Consumer Problem in Go**
+
+
+
+
+
+This chapter explores the classic **Producer–Consumer problem** and demonstrates how to solve it in Go using goroutines and channels. You’ll build a complete system that models real-world coordination between independent producers and consumers.
+
+
+
+------
+
+
+
+
+
+### **🎯 Learning Goals**
+
+
+
+
+
+By the end of this chapter, you will:
+
+
+
+- Understand the classic Producer–Consumer problem
+- Learn Go’s concurrency primitives (goroutines and channels)
+- Build a working producer–consumer implementation in Go
+- Reflect on blocking behavior, synchronization, and concurrency design patterns
+
+
+
+
+
+------
+
+
+
+
+
+### **📚 Part 1: Background**
+
+
+
+
+
+The **Producer–Consumer problem** (also known as the **bounded-buffer problem**) models coordination between two parts of a system:
+
+
+
+- A **producer** generates data
+- A **consumer** uses that data
+- A **shared buffer** stores the data temporarily
+
+
+
+
+
+This problem was first described by **Edsger W. Dijkstra** in the 1960s, during the development of early computing hardware.
+
+
+
+
+
+#### **🔁 Unbounded vs. Bounded Buffers**
+
+
+
+
+
+- **Unbounded**: The buffer grows indefinitely; producers never block.
+- **Bounded**: The buffer has fixed size. Producers must wait if it’s full; consumers wait if it’s empty.
+
+
+
+
+
+
+
+#### **🤹 Multiple Producers and Consumers**
+
+
+
+
+
+- More complex scenarios involve multiple producers and consumers accessing the same buffer.
+- The challenge increases: ensure no one overwrites data or misses messages.
+
+
+
+
+
+
+
+#### **💬 From Semaphores to Channels**
+
+
+
+
+
+Early versions of this problem used semaphores to track available buffer space. Modern languages like Go use **channels** instead:
+
+
+
+- Channels encapsulate synchronization.
+- Rather than checking, you simply send or receive—and the system handles blocking.
+
+
+
+
+
+------
+
+
+
+
+
+### **🔍 Part 2: Understanding the Problem**
+
+
+
+
+
+Let’s model this with a **bakery metaphor**:
+
+
+
+- **Bakers (Producers)** place loaves of bread on a shared shelf.
+- **Customers (Consumers)** take loaves from the shelf.
+- The shelf has limited space.
+
+
+
+
+
+
+
+#### **🧱 Key Constraints**
+
+
+
+
+
+- **Bounded Buffer**: Producers must wait if it’s full. Consumers must wait if it’s empty.
+- **Blocking Behavior**: Buffer operations block when unsafe.
+- **Thread Safety**: Buffer must be protected from concurrent access issues.
+- **Coordination**: System must adapt if one side (producer/consumer) is faster.
+
+
+
+
+
+
+
+#### **💡 Why It Matters**
+
+
+
+
+
+The Producer–Consumer pattern underlies:
+
+
+
+- Message queues (Kafka, RabbitMQ)
+- Logging systems
+- Streaming services
+- Task schedulers
+- Web server request handling
+
+
+
+
+
+------
+
+
+
+
+
+### **⚙️ Part 3: Writing a Producer–Consumer in Go**
+
+
+
+
+
+Let’s build a simple implementation that includes:
+
+
+
+- 2 producers
+- 3 consumers
+- A shared buffer of capacity 5
+
+
+
+```
+package main
+
+import (
+    "fmt"
+    "sync"
+    "time"
+)
+
+// producer writes 10 items into the shared buffer
+func producer(id int, buffer chan int, wg *sync.WaitGroup) {
+    defer wg.Done()
+    for i := 0; i < 10; i++ {
+        fmt.Printf("Producer %d: produced %d\n", id, i)
+        buffer <- i
+        time.Sleep(500 * time.Millisecond) // simulate work
+    }
+}
+
+// consumer reads 10 items from the shared buffer
+func consumer(id int, buffer chan int, wg *sync.WaitGroup) {
+    defer wg.Done()
+    for i := 0; i < 10; i++ {
+        item := <-buffer
+        fmt.Printf("Consumer %d: consumed %d\n", id, item)
+        time.Sleep(800 * time.Millisecond) // simulate processing
+    }
+}
+
+func main() {
+    buffer := make(chan int, 5) // shared channel with capacity 5
+
+    var wg sync.WaitGroup
+
+    numProducers := 2
+    numConsumers := 3
+
+    wg.Add(numProducers + numConsumers)
+
+    // launch producer goroutines
+    for i := 0; i < numProducers; i++ {
+        go producer(i, buffer, &wg)
+    }
+
+    // launch consumer goroutines
+    for i := 0; i < numConsumers; i++ {
+        go consumer(i, buffer, &wg)
+    }
+
+    wg.Wait()
+    fmt.Println("All done!") // this may never be reached (deadlock!)
+}
+```
+
+
+
+------
+
+
+
+
+
+### **⚠️ Deadlock Warning**
+
+
+
+
+
+This program compiles and runs but will likely result in a **deadlock**. Why?
+
+
+
+
+
+#### **🧨 Math Check**
+
+
+
+
+
+- 2 producers × 10 items = **20 items produced**
+- 3 consumers × 10 items = **30 items expected**
+
+
+
+
+
+The consumers are expecting 10 more items than are ever produced. Once all producers are done, the consumers keep waiting—and the program freezes.
+
+
+
+------
+
+
+
+
+
+### **🧠 Summary**
+
+
+
+| **Concept**       | **Description**                                              |
+| ----------------- | ------------------------------------------------------------ |
+| Producer–Consumer | A concurrency pattern for sharing data between tasks         |
+| Bounded Buffer    | A shared resource with finite capacity                       |
+| Channel           | Go primitive for safe communication and synchronization      |
+| Deadlock          | A state where goroutines block forever due to unmet conditions |
+
+You’ve now built a working (but flawed!) producer–consumer system in Go. Understanding its failure prepares you to fix it in the next chapter!
+
+
+
+---
+
+
+
